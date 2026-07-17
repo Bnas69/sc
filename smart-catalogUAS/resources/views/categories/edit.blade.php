@@ -46,12 +46,12 @@
 
                 <!-- Preview & Upload Foto -->
                 <div>
-                    <label class="block text-sm font-bold text-slate-700 mb-2 ml-1">Foto Produk</label>
+                    <label class="block text-sm font-bold text-slate-700 mb-2 ml-1">Foto Kategori</label>
                     <div class="flex flex-col md:flex-row gap-6 items-start">
                         <!-- Preview Foto Saat Ini -->
                         <div class="w-full md:w-40 h-40 rounded-2xl overflow-hidden border border-slate-200 shadow-inner bg-slate-50">
-                            @if($category->foto_produk)
-                                <img src="{{ asset('storage/' . $category->foto_produk) }}" class="w-full h-full object-cover">
+                            @if($category->gambar)
+                                <img src="{{ asset('storage/' . $category->gambar) }}" class="w-full h-full object-cover">
                             @else
                                 <div class="w-full h-full flex items-center justify-center text-slate-300">
                                     <i data-lucide="image" class="w-8 h-8"></i>
@@ -61,7 +61,7 @@
 
                         <div class="flex-1 w-full">
                             <div class="relative group">
-                                <input type="file" name="foto_produk" id="foto_produk"
+                                <input type="file" name="foto" id="foto"
                                        class="w-full px-6 py-10 bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl cursor-pointer hover:bg-slate-100 transition-all file:hidden">
                                 <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-slate-400 gap-2">
                                     <i data-lucide="camera" class="w-6 h-6"></i>
@@ -69,7 +69,7 @@
                                     <p class="text-[10px]">Kosongkan jika tidak ingin mengubah foto</p>
                                 </div>
                             </div>
-                            @error('foto_produk')
+                            @error('foto')
                                 <p class="text-red-500 text-xs mt-2 ml-1 font-medium italic">{{ $message }}</p>
                             @enderror
                         </div>

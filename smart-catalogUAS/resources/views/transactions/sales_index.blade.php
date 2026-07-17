@@ -30,6 +30,14 @@
         </div>
     @endif
 
+    <!-- Notifikasi Error -->
+    @if($errors->any())
+        <div class="bg-red-50 border border-red-100 text-red-700 px-6 py-4 rounded-2xl mb-8 flex items-center gap-3 shadow-sm">
+            <i data-lucide="alert-circle" class="w-5 h-5"></i>
+            <span class="font-bold text-sm">{{ $errors->first() }}</span>
+        </div>
+    @endif
+
     <!-- Tabel Transaksi -->
     <div class="bg-white rounded-[2rem] border border-slate-100 overflow-hidden shadow-sm">
         <div class="overflow-x-auto">
@@ -78,11 +86,20 @@
                             </span>
                         </td>
                         <td class="px-8 py-5 text-right">
-                            <!-- TOMBOL CETAK PDF YANG SUDAH DIPERBAIKI (TIDAK ADA ALERT LAGI) -->
-                            <a href="{{ route('sales.pdf', $trx->id) }}" class="text-xs bg-slate-100 hover:bg-slate-200 text-indigo-600 px-4 py-2.5 rounded-xl transition-all inline-flex items-center gap-1.5 font-bold">
-                                <i data-lucide="printer" class="w-4 h-4 text-indigo-500"></i>
-                                Cetak PDF
-                            </a>
+                            <div class="flex items-center justify-end gap-2">
+                                <a href="{{ route('sales.show', $trx->id) }}" class="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-600 px-3 py-2.5 rounded-xl transition-all inline-flex items-center gap-1.5 font-bold border border-indigo-100">
+                                    <i data-lucide="eye" class="w-4 h-4"></i>
+                                    Review
+                                </a>
+                                <a href="{{ route('sales.pdf.preview', $trx->id) }}" target="_blank" class="text-xs bg-blue-50 hover:bg-blue-100 text-blue-600 px-3 py-2.5 rounded-xl transition-all inline-flex items-center gap-1.5 font-bold border border-blue-100">
+                                    <i data-lucide="file-text" class="w-4 h-4"></i>
+                                    Lihat PDF
+                                </a>
+                                <a href="{{ route('sales.pdf', $trx->id) }}" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-2.5 rounded-xl transition-all inline-flex items-center gap-1.5 font-bold">
+                                    <i data-lucide="download" class="w-4 h-4"></i>
+                                    Download
+                                </a>
+                            </div>
                         </td>
                     </tr>
                     @empty

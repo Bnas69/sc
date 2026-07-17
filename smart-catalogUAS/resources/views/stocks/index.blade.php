@@ -24,6 +24,14 @@
         </div>
     @endif
 
+    <!-- Notifikasi Error -->
+    @if($errors->any())
+        <div class="bg-red-50 border border-red-100 text-red-700 px-6 py-4 rounded-2xl mb-8 flex items-center gap-3 shadow-sm">
+            <i data-lucide="alert-circle" class="w-5 h-5"></i>
+            <span class="font-bold text-sm">{{ $errors->first() }}</span>
+        </div>
+    @endif
+
     <!-- Tabel Mutasi Stok -->
     <div class="bg-white rounded-[2rem] border border-slate-100 overflow-hidden shadow-sm">
         <div class="overflow-x-auto">
@@ -46,6 +54,7 @@
                             {{ $mut->created_at->format('d M Y, H:i') }}
                         </td>
                         <td class="px-6 py-5">
+                            @if($mut->product)
                             <div class="flex items-center gap-3">
                                 @if($mut->product->foto_produk)
                                     <img src="{{ asset('storage/' . $mut->product->foto_produk) }}" class="w-10 h-10 rounded-xl object-cover border border-slate-100 shadow-sm">
@@ -56,9 +65,12 @@
                                 @endif
                                 <div>
                                     <p class="font-bold text-slate-800">{{ $mut->product->nama_produk }}</p>
-                                    <p class="text-[10px] text-slate-400 uppercase tracking-widest">{{ $mut->product->category->nama_kategori ?? 'Tanpa Kategori' }}</p>
+                                    <p class="text-[10px] text-slate-400 uppercase tracking-widest">{{ $mut->product?->category?->nama_kategori ?? 'Tanpa Kategori' }}</p>
                                 </div>
                             </div>
+                            @else
+                            <span class="text-xs text-slate-400 italic">Produk terhapus</span>
+                            @endif
                         </td>
                         <td class="px-8 py-5 text-right font-black text-emerald-600 text-base">
                             + {{ number_format($mut->qty) }} Unit

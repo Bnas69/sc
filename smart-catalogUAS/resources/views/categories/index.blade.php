@@ -75,14 +75,22 @@
         </div>
     @endif
 
+    <!-- Notifikasi Error -->
+    @if($errors->has('delete'))
+        <div class="bg-red-50 border border-red-100 text-red-700 px-6 py-4 rounded-2xl mb-8 flex items-center gap-3 shadow-sm">
+            <i data-lucide="alert-circle" class="w-5 h-5"></i>
+            <span class="font-bold text-sm">{{ $errors->first('delete') }}</span>
+        </div>
+    @endif
+
     <!-- GRID KATALOG KATEGORI -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         @forelse($categories as $category)
         <div class="group bg-white rounded-[2rem] border border-slate-100 overflow-hidden shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-300">
             <!-- Container Foto Kategori -->
             <div class="relative h-60 bg-slate-100 overflow-hidden">
-                @if($category->foto_produk)
-                    <img src="{{ asset('storage/' . $category->foto_produk) }}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700">
+                @if($category->gambar)
+                    <img src="{{ asset('storage/' . $category->gambar) }}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700">
                 @else
                     <div class="flex flex-col items-center justify-center h-full text-slate-300 gap-2">
                         <i data-lucide="image" class="w-10 h-10 opacity-20"></i>

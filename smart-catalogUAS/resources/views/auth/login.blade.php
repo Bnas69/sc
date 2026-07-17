@@ -12,7 +12,7 @@
 
         @if($errors->any())
             <div class="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4">
-                Email atau Password salah.
+                {{ $errors->first() }}
             </div>
         @endif
 

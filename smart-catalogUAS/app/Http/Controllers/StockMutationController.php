@@ -6,52 +6,61 @@ use App\Models\StockMutation;
 use App\Models\Products;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Carbon\Carbon;
 
 class StockMutationController extends Controller
 {
     public function index()
     {
-        // Mengambil riwayat barang masuk beserta informasi produknya
-        $mutations = StockMutation::with('product')->orderBy('created_at', 'desc')->get();
+        $mutations = StockMutation::with('product.category')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
         return view('stocks.index', compact('mutations'));
     }
 
     public function create()
     {
-        // Mengambil semua produk untuk ditambahkan stoknya
-        $products = Products::all();
+        $products = Products::orderBy('nama_produk', 'asc')->get();
         return view('stocks.create', compact('products'));
     }
 
-    /**
-     * Memproses penambahan stok barang masuk baru secara aman
-     */
     public function store(Request $request)
     {
-        $request->validate([
-            'product_id' => 'required|exists:products,id',
-            'qty' => 'required|integer|min:1'
+        $validated = $request->validate([
+            'product_id' => [
+                'required',
+                'integer',
+                'exists:products,id',
+            ],
+            'qty' => [
+                'required',
+                'integer',
+                'min:1',
+                'max:100000',
+            ],
         ]);
 
-        $product = Products::findOrFail($request->product_id);
+        $product = Products::findOrFail($validated['product_id']);
 
-        // Gunakan DB Transaction untuk memastikan pencatatan mutasi & update stok sinkron
-        DB::transaction(function () use ($request, $product) {
-            // 1. Generate Stock Code otomatis secara dinamis (Format: STK-YYYYMMDD-SistemDetik)
-            $stockCode = 'STK-' . Carbon::now()->format('Ymd') . '-' . strtoupper(bin2hex(random_bytes(3)));
+        $stockCode = 'STK-' . Carbon::now()->format('Ymd') . '-' . strtoupper(bin2hex(random_bytes(3)));
+        $stokSebelum = $product->stok;
+        $stokSesudah = $stokSebelum + $validated['qty'];
 
-            // 2. Simpan data riwayat mutasi barang masuk
+        DB::transaction(function () use ($validated, $product, $stockCode) {
             StockMutation::create([
                 'stock_code' => $stockCode,
-                'product_id' => $request->product_id,
-                'qty' => $request->qty
+                'product_id' => $validated['product_id'],
+                'qty' => $validated['qty'],
             ]);
 
-            // 3. Tambahkan stok produk secara otomatis
-            $product->increment('stok', $request->qty);
+            $product->increment('stok', $validated['qty']);
         });
 
-        return redirect()->route('stocks.index')->with('success', 'Stok baru berhasil ditambahkan masuk!');
+        return redirect()->route('stocks.index')->with('success',
+            'Stok "' . $product->nama_produk . '" berhasil ditambahkan. ' 
+            . $validated['qty'] . ' unit masuk. Stok: ' . $stokSebelum . ' → ' . $stokSesudah . ' unit.'
+        );
     }
 }

@@ -5,41 +5,36 @@ namespace App\Http\Controllers;
 use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class CategoryController extends Controller
 {
-    /**
-     * Menampilkan daftar kategori dengan pencarian, filter, dan perhitungan produk dinamis
-     */
     public function index(Request $request)
     {
-        // Gunakan withCount untuk menghitung relasi produk secara efisien (menghindari masalah N+1)
         $query = Category::withCount('products');
 
-        // 1. LOGIKA PENCARIAN: Nama Kategori / Deskripsi
-        if ($request->has('search') && $request->search != '') {
-            $query->where(function($q) use ($request) {
-                $q->where('nama_kategori', 'like', '%' . $request->search . '%')
-                  ->orWhere('deskripsi', 'like', '%' . $request->search . '%');
+        if ($request->filled('search')) {
+            $search = Str::lower($request->search);
+            $query->where(function ($q) use ($search) {
+                $q->whereRaw('LOWER(nama_kategori) LIKE ?', ["%{$search}%"])
+                  ->orWhereRaw('LOWER(deskripsi) LIKE ?', ["%{$search}%"]);
             });
         }
 
-        // 2. LOGIKA PENGURUTAN (SORTING)
         $sort = $request->get('sort', 'latest');
-        if ($sort === 'oldest') {
-            $query->orderBy('created_at', 'asc');
-        } elseif ($sort === 'name_asc') {
-            $query->orderBy('nama_kategori', 'asc');
-        } elseif ($sort === 'name_desc') {
-            $query->orderBy('nama_kategori', 'desc');
-        } else {
-            // Default: Kategori terbaru dibuat
-            $query->orderBy('created_at', 'desc');
+        $allowedSorts = ['latest', 'oldest', 'name_asc', 'name_desc'];
+        if (!in_array($sort, $allowedSorts)) {
+            $sort = 'latest';
         }
 
-        $categories = $query->get();
+        match ($sort) {
+            'oldest' => $query->orderBy('created_at', 'asc'),
+            'name_asc' => $query->orderByRaw('LOWER(nama_kategori) ASC'),
+            'name_desc' => $query->orderByRaw('LOWER(nama_kategori) DESC'),
+            default => $query->orderBy('created_at', 'desc'),
+        };
 
-        return view('categories.index', compact('categories'));
+        return view('categories.index', ['categories' => $query->get()]);
     }
 
     public function create()
@@ -49,21 +44,38 @@ class CategoryController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
-            'nama_kategori' => 'required|min:3',
-            'deskripsi' => 'required',
-            'foto' => 'required|image|mimes:jpeg,png,jpg|max:2048'
+        $validated = $request->validate([
+            'nama_kategori' => [
+                'required',
+                'string',
+                'min:3',
+                'max:100',
+                'unique:categories,nama_kategori',
+            ],
+            'deskripsi' => [
+                'required',
+                'string',
+                'min:5',
+                'max:1000',
+            ],
+            'foto' => [
+                'required',
+                'image',
+                'mimes:jpeg,png,jpg,webp',
+                'max:2048',
+            ],
         ]);
 
-        $imagePath = $request->file('foto')->store('produk', 'public');
+        $imagePath = $request->file('foto')->store('categories', 'public');
 
         Category::create([
-            'nama_kategori' => $request->nama_kategori,
-            'deskripsi' => $request->deskripsi,
-            'foto_produk' => $imagePath,
+            'nama_kategori' => Str::title(trim($validated['nama_kategori'])),
+            'deskripsi' => trim($validated['deskripsi']),
+            'gambar' => $imagePath,
         ]);
 
-        return redirect()->route('categories.index')->with('success', 'Kategori baru berhasil ditambahkan.');
+        return redirect()->route('categories.index')
+            ->with('success', 'Kategori "' . $validated['nama_kategori'] . '" berhasil ditambahkan.');
     }
 
     public function edit(Category $category)
@@ -73,36 +85,64 @@ class CategoryController extends Controller
 
     public function update(Request $request, Category $category)
     {
-        $request->validate([
-            'nama_kategori' => 'required|min:3',
-            'deskripsi' => 'required',
-            'foto' => 'nullable|image|mimes:jpeg,png,jpg|max:2048'
+        $validated = $request->validate([
+            'nama_kategori' => [
+                'required',
+                'string',
+                'min:3',
+                'max:100',
+                'unique:categories,nama_kategori,' . $category->id,
+            ],
+            'deskripsi' => [
+                'required',
+                'string',
+                'min:5',
+                'max:1000',
+            ],
+            'foto' => [
+                'nullable',
+                'image',
+                'mimes:jpeg,png,jpg,webp',
+                'max:2048',
+            ],
         ]);
 
         $data = [
-            'nama_kategori' => $request->nama_kategori,
-            'deskripsi' => $request->deskripsi,
+            'nama_kategori' => Str::title(trim($validated['nama_kategori'])),
+            'deskripsi' => trim($validated['deskripsi']),
         ];
 
         if ($request->hasFile('foto')) {
-            if ($category->foto_produk && Storage::disk('public')->exists($category->foto_produk)) {
-                Storage::disk('public')->delete($category->foto_produk);
+            if ($category->gambar && Storage::disk('public')->exists($category->gambar)) {
+                Storage::disk('public')->delete($category->gambar);
             }
-            $data['foto_produk'] = $request->file('foto')->store('produk', 'public');
+            $data['gambar'] = $request->file('foto')->store('categories', 'public');
         }
 
         $category->update($data);
 
-        return redirect()->route('categories.index')->with('success', 'Kategori berhasil diperbarui!');
+        return redirect()->route('categories.index')
+            ->with('success', 'Kategori "' . $data['nama_kategori'] . '" berhasil diperbarui.');
     }
 
     public function destroy(Category $category)
     {
-        if ($category->foto_produk && Storage::disk('public')->exists($category->foto_produk)) {
-            Storage::disk('public')->delete($category->foto_produk);
+        if ($category->products()->count() > 0) {
+            return redirect()->route('categories.index')
+                ->withErrors([
+                    'delete' => 'Kategori "' . $category->nama_kategori . '" tidak bisa dihapus karena masih memiliki ' 
+                    . $category->products()->count() . ' produk terkait. Hapus atau pindahkan produk terlebih dahulu.',
+                ]);
         }
-        
+
+        if ($category->gambar && Storage::disk('public')->exists($category->gambar)) {
+            Storage::disk('public')->delete($category->gambar);
+        }
+
+        $namaKategori = $category->nama_kategori;
         $category->delete();
-        return redirect()->route('categories.index')->with('success', 'Kategori berhasil dihapus.');
+
+        return redirect()->route('categories.index')
+            ->with('success', 'Kategori "' . $namaKategori . '" berhasil dihapus.');
     }
 }

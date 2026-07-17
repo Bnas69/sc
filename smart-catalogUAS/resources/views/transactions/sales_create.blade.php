@@ -14,6 +14,21 @@
             <h1 class="text-3xl font-black text-slate-800 mb-2">Catat Penjualan</h1>
             <p class="text-slate-500 mb-10">Isi detail transaksi di bawah ini. Stok produk akan berkurang secara otomatis setelah disimpan.</p>
 
+            <!-- Error Summary -->
+            @if($errors->any())
+                <div class="bg-red-50 border border-red-100 rounded-2xl p-4 mb-8">
+                    <div class="flex items-center gap-2 mb-2">
+                        <i data-lucide="alert-circle" class="w-4 h-4 text-red-500"></i>
+                        <span class="text-sm font-bold text-red-700">Terdapat kesalahan pada formulir:</span>
+                    </div>
+                    <ul class="list-disc list-inside text-xs text-red-600 space-y-1">
+                        @foreach($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
             <form action="{{ route('sales.store') }}" method="POST" class="space-y-6">
                 @csrf
 

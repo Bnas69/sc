@@ -58,7 +58,7 @@
                 <p class="text-[9px] text-slate-500 font-black uppercase tracking-widest mb-1.5">Produk Juara Pasar:</p>
                 @if(isset($topSellingProducts) && $topSellingProducts->count() > 0)
                     <div class="flex items-center justify-between">
-                        <span class="text-xs font-bold text-slate-300 truncate pr-4">{{ $topSellingProducts->first()->product->nama_produk ?? 'Produk Terhapus' }}</span>
+                        <span class="text-xs font-bold text-slate-300 truncate pr-4">{{ $topSellingProducts->first()->product?->nama_produk ?? 'Produk Terhapus' }}</span>
                         <span class="text-[10px] font-extrabold text-emerald-400 bg-emerald-950 border border-emerald-500/20 px-2.5 py-0.5 rounded-md">{{ $topSellingProducts->first()->total_sold }} Sold</span>
                     </div>
                 @else
@@ -129,8 +129,8 @@
                                 {{ $index + 1 }}
                             </div>
                             <div class="flex-1 overflow-hidden">
-                                <p class="text-xs font-black text-slate-800 truncate">{{ $top->product->nama_produk ?? 'Produk Terhapus' }}</p>
-                                <p class="text-[10px] text-slate-400 truncate">{{ $top->product->category->nama_kategori ?? 'Tanpa Kategori' }}</p>
+                                <p class="text-xs font-black text-slate-800 truncate">{{ $top->product?->nama_produk ?? 'Produk Terhapus' }}</p>
+                                <p class="text-[10px] text-slate-400 truncate">{{ $top->product?->category?->nama_kategori ?? 'Tanpa Kategori' }}</p>
                             </div>
                             <span class="text-xs font-black text-emerald-600 flex-shrink-0 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">{{ $top->total_sold }} Unit</span>
                         </div>

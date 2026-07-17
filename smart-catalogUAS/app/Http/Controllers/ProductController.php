@@ -6,36 +6,33 @@ use App\Models\Products;
 use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use App\Exports\ProductsExport;
 use Maatwebsite\Excel\Facades\Excel;
 
 class ProductController extends Controller
 {
-    /**
-     * Menampilkan daftar produk resmi dengan pencarian dan filter dinamis
-     */
     public function index(Request $request)
     {
-        // 1. Ambil semua kategori untuk dipasang di dropdown filter view
-        $categories = Category::all();
+        $categories = Category::orderBy('nama_kategori', 'asc')->get();
 
-        // 2. Gunakan query builder dengan Eager Loading relasi kategori
         $query = Products::with('category');
 
-        // 3. LOGIKA FILTER 1: Pencarian Kata Kunci (Nama Produk / Deskripsi)
-        if ($request->has('search') && $request->search != '') {
-            $query->where(function($q) use ($request) {
-                $q->where('nama_produk', 'like', '%' . $request->search . '%')
-                  ->orWhere('deskripsi', 'like', '%' . $request->search . '%');
+        if ($request->filled('search')) {
+            $search = Str::lower($request->search);
+            $query->where(function ($q) use ($search) {
+                $q->whereRaw('LOWER(nama_produk) LIKE ?', ["%{$search}%"])
+                  ->orWhereRaw('LOWER(deskripsi) LIKE ?', ["%{$search}%"]);
             });
         }
 
-        // 4. LOGIKA FILTER 2: Penyaringan Kategori yang Dipilih
-        if ($request->has('category_id') && $request->category_id != '') {
-            $query->where('category_id', $request->category_id);
+        if ($request->filled('category_id')) {
+            $categoryId = (int) $request->category_id;
+            if (Category::where('id', $categoryId)->exists()) {
+                $query->where('category_id', $categoryId);
+            }
         }
 
-        // 5. Urutkan berdasarkan produk terbaru dan ambil datanya
         $products = $query->orderBy('created_at', 'desc')->get();
 
         return view('products.index', compact('products', 'categories'));
@@ -43,32 +40,57 @@ class ProductController extends Controller
 
     public function create()
     {
-        $categories = Category::all();
+        $categories = Category::orderBy('nama_kategori', 'asc')->get();
         return view('products.create', compact('categories'));
     }
 
     public function store(Request $request)
     {
-        $request->validate([
-            'nama_produk' => 'required|min:3',
-            'category_id' => 'required|exists:categories,id',
-            'harga' => 'required|numeric|min:1000',
-            'deskripsi' => 'required',
-            'foto' => 'required|image|mimes:jpeg,png,jpg|max:2048'
+        $validated = $request->validate([
+            'nama_produk' => [
+                'required',
+                'string',
+                'min:3',
+                'max:100',
+            ],
+            'category_id' => [
+                'required',
+                'integer',
+                'exists:categories,id',
+            ],
+            'harga' => [
+                'required',
+                'integer',
+                'min:100',
+                'max:100000000',
+            ],
+            'deskripsi' => [
+                'required',
+                'string',
+                'min:5',
+                'max:2000',
+            ],
+            'foto' => [
+                'required',
+                'image',
+                'mimes:jpeg,png,jpg,webp',
+                'max:2048',
+            ],
         ]);
 
-        $imagePath = $request->file('foto')->store('produk', 'public');
+        $imagePath = $request->file('foto')->store('products', 'public');
 
         Products::create([
-            'nama_produk' => $request->nama_produk,
-            'category_id' => $request->category_id,
-            'harga' => $request->harga,
-            'deskripsi' => $request->deskripsi,
+            'nama_produk' => Str::title(trim($validated['nama_produk'])),
+            'category_id' => $validated['category_id'],
+            'harga' => $validated['harga'],
+            'deskripsi' => trim($validated['deskripsi']),
             'foto_produk' => $imagePath,
-            'stok' => 0, 
+            'stok' => 0,
         ]);
 
-        return redirect()->route('products.index')->with('success', 'Produk berhasil ditambahkan ke katalog!');
+        return redirect()->route('products.index')
+            ->with('success', 'Produk "' . $validated['nama_produk'] . '" berhasil ditambahkan ke katalog.');
     }
 
     public function show($id)
@@ -78,51 +100,87 @@ class ProductController extends Controller
 
     public function edit(Products $product)
     {
-        $categories = Category::all();
+        $categories = Category::orderBy('nama_kategori', 'asc')->get();
         return view('products.edit', compact('product', 'categories'));
     }
 
     public function update(Request $request, Products $product)
     {
-        $request->validate([
-            'nama_produk' => 'required|min:3',
-            'category_id' => 'required|exists:categories,id',
-            'harga' => 'required|numeric|min:1000',
-            'deskripsi' => 'required',
-            'foto' => 'nullable|image|mimes:jpeg,png,jpg|max:2048'
+        $validated = $request->validate([
+            'nama_produk' => [
+                'required',
+                'string',
+                'min:3',
+                'max:100',
+            ],
+            'category_id' => [
+                'required',
+                'integer',
+                'exists:categories,id',
+            ],
+            'harga' => [
+                'required',
+                'integer',
+                'min:100',
+                'max:100000000',
+            ],
+            'deskripsi' => [
+                'required',
+                'string',
+                'min:5',
+                'max:2000',
+            ],
+            'foto' => [
+                'nullable',
+                'image',
+                'mimes:jpeg,png,jpg,webp',
+                'max:2048',
+            ],
         ]);
 
         $data = [
-            'nama_produk' => $request->nama_produk,
-            'category_id' => $request->category_id,
-            'harga' => $request->harga,
-            'deskripsi' => $request->deskripsi,
+            'nama_produk' => Str::title(trim($validated['nama_produk'])),
+            'category_id' => $validated['category_id'],
+            'harga' => $validated['harga'],
+            'deskripsi' => trim($validated['deskripsi']),
         ];
 
         if ($request->hasFile('foto')) {
             if ($product->foto_produk && Storage::disk('public')->exists($product->foto_produk)) {
                 Storage::disk('public')->delete($product->foto_produk);
             }
-            $data['foto_produk'] = $request->file('foto')->store('produk', 'public');
+            $data['foto_produk'] = $request->file('foto')->store('products', 'public');
         }
 
         $product->update($data);
 
-        return redirect()->route('products.index')->with('success', 'Produk berhasil diperbarui!');
+        return redirect()->route('products.index')
+            ->with('success', 'Produk "' . $data['nama_produk'] . '" berhasil diperbarui.');
     }
 
     public function destroy(Products $product)
     {
+        $hasTransactions = \App\Models\SalesTransaction::where('product_id', $product->id)->exists();
+        if ($hasTransactions) {
+            return redirect()->route('products.index')
+                ->withErrors([
+                    'delete' => 'Produk "' . $product->nama_produk . '" tidak bisa dihapus karena memiliki riwayat transaksi penjualan.',
+                ]);
+        }
+
         if ($product->foto_produk && Storage::disk('public')->exists($product->foto_produk)) {
             Storage::disk('public')->delete($product->foto_produk);
         }
 
+        $namaProduk = $product->nama_produk;
         $product->delete();
-        return redirect()->route('products.index')->with('success', 'Produk berhasil dihapus.');
+
+        return redirect()->route('products.index')
+            ->with('success', 'Produk "' . $namaProduk . '" berhasil dihapus dari katalog.');
     }
 
     public function exportExcel()
     {
-        return Excel::download(new ProductsExport, 'laporan-katalog-umkm.xlsx');
+        return Excel::download(new ProductsExport, 'laporan-katalog-produk-' . date('Ymd-His') . '.xlsx');
     }
 }

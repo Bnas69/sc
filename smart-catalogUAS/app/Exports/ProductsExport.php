@@ -44,7 +44,7 @@ class ProductsExport implements FromCollection, WithHeadings, WithMapping
             $product->nama_produk,
             $product->category ? $product->category->nama_kategori : 'Tanpa Kategori',
             $product->harga,
-            $product->deskripsi_produk,
+            $product->deskripsi,
             $product->created_at->format('d-m-Y H:i'),
         ];
     }

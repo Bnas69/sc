@@ -12,7 +12,22 @@
     <div class="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
         <div class="p-8 md:p-12">
             <h1 class="text-3xl font-black text-slate-800 mb-2">Catat Barang Masuk</h1>
-            <p class="text-slate-500 mb-10">Gunakan formulir ini untuk menambah ketersediaan stok fisik barang di server gudang Smart-Catalog.</p>
+            <p class="text-slate-500 mb-10">Gunakan formulir ini untuk menambah ketersediaan stok fisik barang di gudang Smart-Catalog.</p>
+
+            <!-- Error Summary -->
+            @if($errors->any())
+                <div class="bg-red-50 border border-red-100 rounded-2xl p-4 mb-8">
+                    <div class="flex items-center gap-2 mb-2">
+                        <i data-lucide="alert-circle" class="w-4 h-4 text-red-500"></i>
+                        <span class="text-sm font-bold text-red-700">Terdapat kesalahan pada formulir:</span>
+                    </div>
+                    <ul class="list-disc list-inside text-xs text-red-600 space-y-1">
+                        @foreach($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
 
             <form action="{{ route('stocks.store') }}" method="POST" class="space-y-6">
                 @csrf
